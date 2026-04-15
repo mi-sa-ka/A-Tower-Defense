@@ -1,0 +1,7 @@
+[package]
+name = "tower_defense"
+version = "0.1.0"
+edition = "2024"
+bevy = "0.14"
+
+[dependencies]
