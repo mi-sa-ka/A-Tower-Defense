@@ -1,4 +1,3 @@
-// 模块导入
 mod components;    // 组件定义
 mod constants;    // 常量定义
 mod resources;    // 资源定义
@@ -14,14 +13,16 @@ use systems::{
     // 塔系统
     tower_targeting, laser_tower_targeting, laser_damage, bullet_movement,
     // 输入系统
-    update_mouse_position, handle_build_input,
+    update_mouse_position, handle_build_input, handle_sell_tower,cancel_build_mode,
     // UI系统
-    setup_menu, handle_menu_buttons, hide_menu, update_console_ui, update_game_ui,
+    setup_menu, handle_menu_buttons, hide_menu, check_game_over, game_over_menu, update_console_ui, update_game_ui,
     // 塔选择系统
-    setup_tower_selection, handle_tower_selection, update_selected_tower_indicator,
+    setup_tower_selection, handle_tower_selection, update_selected_tower_indicator,keyboard_upgrade,
     // 游戏设置
     setup_game,
+    update_range_indicator,
 };
+use resources::SelectedTower; 
 
 /// 游戏主函数
 fn main() {
@@ -66,12 +67,17 @@ fn main() {
         .insert_resource(MousePosition::default())
         // 插入游戏状态资源，初始为菜单状态
         .insert_resource(GameStatus::Menu)
+
+        .insert_resource(SelectedTower::default())
+
         
         // 添加系统
         // 菜单系统
-        .add_system(handle_menu_buttons)    // 处理菜单按钮点击
-        .add_system(setup_menu)             // 设置菜单UI
-        .add_system(hide_menu)              // 隐藏菜单
+        .add_system(handle_menu_buttons)
+        .add_system(setup_menu)
+        .add_system(hide_menu)
+        .add_system(check_game_over)        // 检测游戏结束
+        .add_system(game_over_menu)         // 显示游戏结束界面
         
         // 游戏设置
         .add_system(setup_game)             // 设置游戏地图和UI
@@ -90,16 +96,20 @@ fn main() {
         // 输入系统
         .add_system(update_mouse_position)  // 更新鼠标位置
         .add_system(handle_build_input)      // 处理建造输入
+        .add_system(cancel_build_mode)
         
         // UI系统
         .add_system(update_console_ui)       // 更新控制台UI
         .add_system(update_game_ui)          // 更新游戏UI
+        .add_system(handle_sell_tower)   
         
         // 塔选择系统
         .add_system(setup_tower_selection)  // 设置塔选择UI
         .add_system(handle_tower_selection) // 处理塔选择
         .add_system(update_selected_tower_indicator) // 更新选中塔的指示器
-        
+        .add_system(update_range_indicator)
+        .add_system(keyboard_upgrade)
+
         // 运行游戏
         .run();
 }

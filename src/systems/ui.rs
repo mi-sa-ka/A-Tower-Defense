@@ -1,7 +1,8 @@
 use bevy::prelude::*;
-use crate::components::{MoneyDisplay, WaveDisplay};
+use crate::components::{LivesDisplay, MoneyDisplay, WaveDisplay};
 use crate::constants::ENEMIES_PER_WAVE;
 use crate::resources::{GameState, GameStatus};
+
 
 pub fn update_console_ui(game_state: Res<GameState>, game_status: Res<GameStatus>) {
     if *game_status == GameStatus::Playing && game_state.is_changed() {
@@ -22,6 +23,7 @@ pub fn update_game_ui(
     mut ui_query: ParamSet<(
         Query<&mut Text, With<MoneyDisplay>>,
         Query<&mut Text, With<WaveDisplay>>,
+        Query<&mut Text, With<LivesDisplay>>,
     )>,
 ) {
     if *game_status != GameStatus::Playing {
@@ -32,5 +34,8 @@ pub fn update_game_ui(
     }
     for mut text in ui_query.p1().iter_mut() {
         text.sections[0].value = format!("Wave: {}", game_state.wave);
+    }
+    for mut text in ui_query.p2().iter_mut() {   
+        text.sections[0].value = format!("Lives: {}", game_state.lives);
     }
 }

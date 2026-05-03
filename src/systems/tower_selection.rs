@@ -1,7 +1,10 @@
 use bevy::prelude::*;
+use crate::constants::{TOWER_COST, LASER_TOWER_COST, 
+                       TOWER_UPGRADE_BASE_COST, LASER_UPGRADE_BASE_COST, 
+                       UPGRADE_DAMAGE_MULTIPLIER, UPGRADE_RANGE_MULTIPLIER};
 use crate::components::{Tower, LaserTower};
-use crate::constants::{LASER_TOWER_COST, TOWER_COST};
-use crate::resources::{GameStatus, GameState, TowerType};
+use crate::resources::{GameState, GameStatus, TowerType, SelectedTower};
+use bevy::input::keyboard::KeyCode;
 
 #[derive(Component)]
 pub struct TowerSelectionUI;
@@ -22,14 +25,15 @@ pub fn setup_tower_selection(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     game_status: Res<GameStatus>,
-    ui_query: Query<Entity, With<TowerSelectionUI>>,
+    mut ui_query: Query<Entity, With<TowerSelectionUI>>,
 ) {
     if *game_status != GameStatus::Playing {
         return;
     }
 
-    if !ui_query.is_empty() {
-        return;
+    // 清理旧的 UI
+    for entity in ui_query.iter() {
+        commands.entity(entity).despawn_recursive();
     }
 
     let font = asset_server.load(r"C:\Windows\Fonts\arial.ttf");
@@ -37,9 +41,9 @@ pub fn setup_tower_selection(
     commands.spawn((
         NodeBundle {
             style: Style {
-                size: Size::new(Val::Px(100.0), Val::Percent(100.0)),
+                size: Size::new(Val::Px(150.0), Val::Percent(100.0)),
                 flex_direction: FlexDirection::Column,
-                justify_content: JustifyContent::Center,
+                justify_content: JustifyContent::FlexStart,
                 align_items: AlignItems::Center,
                 position_type: PositionType::Absolute,
                 position: UiRect {
@@ -48,6 +52,7 @@ pub fn setup_tower_selection(
                     bottom: Val::Px(20.0),
                     ..Default::default()
                 },
+                overflow: Overflow::Visible,   // 修复：Visible 大写
                 ..Default::default()
             },
             background_color: Color::rgba(0.1, 0.1, 0.1, 0.8).into(),
@@ -55,6 +60,7 @@ pub fn setup_tower_selection(
         },
         TowerSelectionUI,
     )).with_children(|parent| {
+        // 标题
         parent.spawn(TextBundle::from_section(
             "Towers",
             TextStyle {
@@ -67,6 +73,7 @@ pub fn setup_tower_selection(
             ..Default::default()
         }));
 
+        // 选中指示器
         parent.spawn((
             TextBundle::from_section(
                 "Selected: None",
@@ -82,6 +89,7 @@ pub fn setup_tower_selection(
             SelectedTowerIndicator,
         ));
 
+        // 普通塔按钮
         parent.spawn((
             ButtonBundle {
                 style: Style {
@@ -118,6 +126,7 @@ pub fn setup_tower_selection(
             ..Default::default()
         }));
 
+        // 激光塔按钮
         parent.spawn((
             ButtonBundle {
                 style: Style {
@@ -153,6 +162,8 @@ pub fn setup_tower_selection(
             margin: UiRect::bottom(Val::Px(10.0)),
             ..Default::default()
         }));
+
+        
     });
 }
 
@@ -168,15 +179,25 @@ pub fn handle_tower_selection(
 
     for interaction in tower_button_query.iter() {
         if *interaction == Interaction::Clicked {
-            game_state.selected_tower = TowerType::Basic;
-            println!("Basic Tower selected");
+            if game_state.selected_tower == TowerType::Basic {
+                game_state.selected_tower = TowerType::None;
+                println!("Basic Tower deselected");
+            } else {
+                game_state.selected_tower = TowerType::Basic;
+                println!("Basic Tower selected");
+            }
         }
     }
 
     for interaction in laser_tower_button_query.iter() {
         if *interaction == Interaction::Clicked {
-            game_state.selected_tower = TowerType::Laser;
-            println!("Laser Tower selected");
+            if game_state.selected_tower == TowerType::Laser {
+                game_state.selected_tower = TowerType::None;
+                println!("Laser Tower deselected");
+            } else {
+                game_state.selected_tower = TowerType::Laser;
+                println!("Laser Tower selected");
+            }
         }
     }
 }
@@ -201,6 +222,60 @@ pub fn update_selected_tower_indicator(
             TowerType::Laser => {
                 text.sections[0].value = "Selected: Laser Tower".to_string();
             }
+        }
+    }
+}
+
+
+pub fn keyboard_upgrade(
+    keyboard_input: Res<Input<KeyCode>>,
+    selected_tower: Res<SelectedTower>,
+    mut game_state: ResMut<GameState>,
+    game_status: Res<GameStatus>,
+    mut tower_query: Query<&mut Tower>,
+    mut laser_query: Query<&mut LaserTower>,
+) {
+    println!(">>> keyboard_upgrade called");  // 调试打印
+
+    if *game_status != GameStatus::Playing {
+        return;
+    }
+
+    if keyboard_input.just_pressed(KeyCode::U) {
+        println!(">>> U key pressed");
+        if let Some(tower_entity) = selected_tower.0 {
+            // 先尝试普通塔
+            if let Ok(mut tower) = tower_query.get_mut(tower_entity) {
+                let cost = TOWER_UPGRADE_BASE_COST * tower.level;
+                if game_state.money >= cost {
+                    game_state.money -= cost;
+                    tower.level += 1;
+                    tower.damage *= 1.0 + UPGRADE_DAMAGE_MULTIPLIER;
+                    tower.range *= 1.0 + UPGRADE_RANGE_MULTIPLIER;
+                    println!("[Upgrade] Tower upgraded to level {}! Damage: {:.1}, Range: {:.1}", 
+                             tower.level, tower.damage, tower.range);
+                } else {
+                    println!("[Upgrade] Not enough money! Need ${}", cost);
+                }
+            } 
+            // 否则尝试激光塔
+            else if let Ok(mut laser) = laser_query.get_mut(tower_entity) {
+                let cost = LASER_UPGRADE_BASE_COST * laser.level;
+                if game_state.money >= cost {
+                    game_state.money -= cost;
+                    laser.level += 1;
+                    laser.damage *= 1.0 + UPGRADE_DAMAGE_MULTIPLIER;
+                    laser.range *= 1.0 + UPGRADE_RANGE_MULTIPLIER;
+                    println!("[Upgrade] Laser upgraded to level {}! Damage: {:.1}, Range: {:.1}", 
+                             laser.level, laser.damage, laser.range);
+                } else {
+                    println!("[Upgrade] Not enough money! Need ${}", cost);
+                }
+            } else {
+                println!("[Upgrade] Selected entity is not a tower");
+            }
+        } else {
+            println!("[Upgrade] No tower selected");
         }
     }
 }

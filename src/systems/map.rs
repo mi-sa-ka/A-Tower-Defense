@@ -1,13 +1,14 @@
 use bevy::prelude::*;
 use bevy::ecs::query::Or;
-use crate::components::{BuildTile, MoneyDisplay, PathTile, WaveDisplay};
+use crate::components::{BuildTile, MoneyDisplay, PathTile, WaveDisplay, LivesDisplay};
 use crate::constants::{MAP_HEIGHT, MAP_WIDTH, TILE_SIZE};
-use crate::resources::GameStatus;
+use crate::resources::{GameState, GameStatus};  
 
 pub fn setup_game(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     game_status: Res<GameStatus>,
+    game_state: Res<GameState>, 
     camera_query: Query<Entity, With<Camera>>,
     money_display_query: Query<Entity, With<MoneyDisplay>>,
     map_query: Query<Entity, Or<(With<PathTile>, With<BuildTile>)>>,
@@ -63,7 +64,7 @@ pub fn setup_game(
                         TextSection {
                             value: "Wave: 1".to_string(),
                             style: TextStyle {
-                                font,
+                                font: font.clone(),
                                 font_size: 32.0,
                                 color: Color::WHITE,
                             },
@@ -83,6 +84,35 @@ pub fn setup_game(
                 ..Default::default()
             },
             WaveDisplay,
+        ));
+
+        commands.spawn((
+            TextBundle {
+                text: Text {
+                    sections: vec![
+                        TextSection {
+                            value: format!("Lives: {}", game_state.lives),
+                            style: TextStyle {
+                                font: font.clone(),  // 注意这里也是 clone
+                                font_size: 32.0,
+                                color: Color::RED,
+                            },
+                        },
+                    ],
+                    ..Default::default()
+                },
+                style: Style {
+                    position_type: PositionType::Absolute,
+                    position: UiRect {
+                        left: Val::Px(20.0),
+                        top: Val::Px(100.0),
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
+            LivesDisplay,
         ));
     }
 

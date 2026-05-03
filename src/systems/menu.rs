@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use crate::resources::GameStatus;
+use crate::resources::{GameState, GameStatus};
 
 #[derive(Component)]
 pub struct MenuUI;
@@ -9,6 +9,9 @@ pub struct StartButton;
 
 #[derive(Component)]
 pub struct QuitButton;
+
+#[derive(Component)]
+pub struct GameOverUI;
 
 pub fn setup_menu(
     mut commands: Commands,
@@ -138,4 +141,65 @@ pub fn handle_menu_buttons(
             std::process::exit(0);
         }
     }
+}
+
+pub fn check_game_over(
+    game_state: Res<GameState>,
+    mut game_status: ResMut<GameStatus>,
+) {
+    if *game_status == GameStatus::Playing && game_state.lives == 0 {
+        *game_status = GameStatus::GameOver;
+        println!("Game Over! Final wave: {}", game_state.wave);
+    }
+}
+
+pub fn game_over_menu(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    game_status: Res<GameStatus>,
+    game_over_ui_query: Query<Entity, With<GameOverUI>>,
+) {
+    if *game_status != GameStatus::GameOver {
+        return;
+    }
+
+    if !game_over_ui_query.is_empty() {
+        return;
+    }
+
+    commands.spawn((
+        NodeBundle {
+            style: Style {
+                size: Size::new(Val::Percent(100.0), Val::Percent(100.0)),
+                flex_direction: FlexDirection::Column,
+                justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center,
+                ..Default::default()
+            },
+            background_color: Color::rgba(0.0, 0.0, 0.0, 0.9).into(),
+            ..Default::default()
+        },
+        GameOverUI,
+    )).with_children(|parent| {
+        parent.spawn(TextBundle::from_section(
+            "GAME OVER",
+            TextStyle {
+                font: asset_server.load("C:\\Windows\\Fonts\\arial.ttf"),
+                font_size: 72.0,
+                color: Color::RED,
+            },
+        ));
+
+        parent.spawn(TextBundle::from_section(
+            "Press R to restart or Esc to quit",
+            TextStyle {
+                font: asset_server.load("C:\\Windows\\Fonts\\arial.ttf"),
+                font_size: 32.0,
+                color: Color::WHITE,
+            },
+        ).with_style(Style {
+            margin: UiRect::top(Val::Px(30.0)),
+            ..Default::default()
+        }));
+    });
 }

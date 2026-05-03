@@ -16,6 +16,7 @@ pub struct Tower {
     pub range: f32,             // 攻击范围
     pub damage: f32,            // 攻击力
     pub attack_cooldown: Timer,  // 攻击冷却计时器
+    pub level: u32,
 }
 
 /// 子弹组件
@@ -55,6 +56,7 @@ pub struct LaserTower {
     pub range: f32,             // 攻击范围
     pub damage: f32,            // 攻击力
     pub attack_cooldown: Timer,  // 攻击冷却计时器
+    pub level: u32,
 }
 
 /// 激光组件
@@ -70,3 +72,15 @@ pub struct Laser {
 pub struct ShieldedEnemy {
     pub has_shield: bool,  // 是否有护盾
 }
+
+/// 生命值显示组件
+#[derive(Component)]
+pub struct LivesDisplay;
+
+/// 攻击范围指示器（一个半透明圆环）
+#[derive(Component)]
+pub struct RangeIndicator;
+
+/// 塔的标记组件（用于查询所有塔）
+#[derive(Component)]
+pub struct TowerEntity;

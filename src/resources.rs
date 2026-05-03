@@ -66,12 +66,17 @@ pub struct MousePosition {
 /// 游戏状态枚举
 #[derive(Resource, Clone, Copy, PartialEq, Eq, Debug, Hash)]
 pub enum GameStatus {
-    Menu,    // 菜单状态
-    Playing, // 游戏中状态
+    Menu,      // 菜单状态
+    Playing,   // 游戏中状态
+    GameOver,  // 游戏结束状态
 }
 
 impl Default for GameStatus {
     fn default() -> Self {
-        GameStatus::Menu // 默认状态为菜单
+        GameStatus::Menu
     }
 }
+
+/// 当前选中的塔实体（用于显示范围）
+#[derive(Resource, Default)]
+pub struct SelectedTower(pub Option<Entity>);
